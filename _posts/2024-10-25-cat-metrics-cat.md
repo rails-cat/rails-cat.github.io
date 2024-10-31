@@ -206,5 +206,5 @@ A partir d'aquí, es poden afegir noves funcionalitats:
 
 Aquesta configuració proporciona una base que es pot ampliar progressivament segons les necessitats dels usuaris.
 
-> Compren els detalls per ajustar la funcionalitat a les teves necessitats
+> Comprèn els detalls per ajustar la funcionalitat a les teves necessitats
 {: .prompt-tip }
