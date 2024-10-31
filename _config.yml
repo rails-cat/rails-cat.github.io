@@ -69,7 +69,7 @@ analytics:
     id: 1
     domain: rails-cat.github.io
   cloudflare:
-    id: # fill in your Cloudflare Web Analytics token
+    id: 5794b5596cb84efe812e8ae9be6d5dbf
   fathom:
     id: # fill in your Fathom Site ID
 
