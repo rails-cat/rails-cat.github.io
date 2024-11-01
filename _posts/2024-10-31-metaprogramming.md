@@ -3,7 +3,7 @@ title: Exemples de MetaProgramació dins de Ruby on Rails
 date: 2024-10-31 00:00:00 +0000
 categories: []
 tags: []
-lang: cat
+lang: ca
 ---
 
 ![Desenmascarat](assets/meta-programming.webp){: style="display: block; margin-left: auto; margin-right: auto; width: 50%; height: auto;" }
@@ -15,7 +15,7 @@ En altres paraules, és programar un programa perquè escrigui o alteri altres p
 
 En llenguatges com Ruby, la metaprogramació és força comuna i s'utilitza per crear funcionalitats avançades de manera dinàmica, com definir mètodes durant l'execució o crear DSLs (Domain-Specific Languages).
 
-## Mètodes bàsics
+### Mètodes bàsics
 - Amb el mètode `send`, es poden cridar mètodes de forma dinàmica, passant el nom del mètode com un símbol o una cadena. Això permet executar mètodes que potser no coneixem prèviament, o que han estat definits en temps d'execució. 
 - La funció `define_method`, per la seva banda, permet crear mètodes dins d'una classe o mòdul en temps real, facilitant la creació de codi flexible o ajustat a les necessitats específiques d’una aplicació. 
 - `method_missing` també és útil per capturar trucades a mètodes inexistents, oferint la possibilitat d'interpretar-les o derivar-les a altres mètodes
@@ -156,4 +156,79 @@ Que ens porta al seguent codi rellevant: [`ActiveRecord::Reflection.create`](htt
 ```
 
 [![Pot veure un video molr relacionat aquí](assets/ar-reflections.png)](https://www.youtube.com/watch?v=6qHKtAkqguc){: style="display: block; margin-left: auto; margin-right: auto; width: 50%; height: auto;" }
+
+
+
+## ActionPack DSL de Rutes
+
+Rails fa servir metaprogramació per construir rutes amb el seu propi DSL (Domain-Specific Language), creant automàticament les rutes i helpers associats a cada ruta.
+
+### Configurant les rutes de la nostra aplicació
+
+Exemple:
+```ruby
+Rails.application.routes.draw do
+  resources :posts do
+    resources :comments
+  end
+end
+```
+
+Això defineix automàticament rutes com `posts_path`, `new_post_path`, `post_comments_path`, etc., utilitzant metaprogramació per convertir aquestes declaracions en un conjunt de mètodes i rutes URL.
+
+### Amb molt més detall(per un exemple més senzill)
+
+```ruby
+Rails.application.routes.draw do
+  get "up" => "rails/health#show", as: :rails_health_check
+end
+```
+
+Podem llegir al fitxer `config/routes.rb` de la nostra aplicació la crida a `Rails.application.routes.draw` passant com a parametre un bloc.
+
+Busca on és definit aquest mètode. Exacte, a la gem ActionPack, fitxer [`actionpack/lib/action_dispatch/routing/route_set.rb`](https://github.com/rails/rails/blob/a7c8a20825be5ac8d96566ec5dbe9daa85568bc8/actionpack/lib/action_dispatch/routing/route_set.rb#L459)
+
+```ruby
+def draw(&block)
+  puts "Block class: #{block.class}"      # Outputs the class (Proc)
+  puts "Block inspection: #{block.inspect}" # Inspects the Proc object
+  puts block.source
+  clear! unless @disable_clear_and_finalize
+  eval_block(block)
+  finalize! unless @disable_clear_and_finalize
+  nil
+end
+```
+per poder imprimir el contingut de la variable `block` podem servir la gem `method_source`, així el que veurem serà:
+```shell
+Block class: Proc
+Block inspection: #<Proc:0x00007f705dd10e78 /path/to/myapp/config/routes.rb:1>
+Rails.application.routes.draw do
+  get "up" => "rails/health#show", as: :rails_health_check
+end
+```
+comencem a tenir evidencies del ús de metaprogramació, estem pasan codi com a paràmetre a la funció `draw`, i que fem amb aquest codi? 
+Exacte:
+```ruby
+  eval_block(block)
+```
+el passem a eval_bloc:
+```ruby
+def eval_block(block)
+  mapper = Mapper.new(self)
+  if default_scope
+    mapper.with_default_scope(default_scope, &block)
+  else
+    mapper.instance_exec(&block)
+  end
+end
+```
+on trobem el que buscavem, la evidència a la instrucció `mapper.instance_exec(&block)`.
+
+Consultem la api de [ruby](https://rubyapi.org/3.3/o/basicobject#method-i-instance_exec) per els detalls
+```
+instance_exec(*args) public
+
+Executes the given block within the context of the receiver (obj). In order to set the context, the variable self is set to obj while the code is executing, giving the code access to obj\’s instance variables. Arguments are passed as block parameters.
+```
 
